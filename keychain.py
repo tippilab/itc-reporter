@@ -5,6 +5,7 @@ from ctypes import c_void_p, c_uint16, c_uint32, c_int32, c_char_p, POINTER
 sec_keychain_ref = sec_keychain_item_ref = c_void_p
 OS_status = c_int32
 
+
 class error:
     item_not_found = -25300
 
@@ -24,6 +25,7 @@ SecKeychainItemFreeContent = _sec.SecKeychainItemFreeContent
 SecKeychainItemFreeContent.argtypes = (c_void_p, c_void_p,)
 SecKeychainItemFreeContent.restype = OS_status
 
+
 class Error(Exception):
     @classmethod
     def raise_for_status(cls, status, msg):
@@ -31,12 +33,14 @@ class Error(Exception):
             return
         raise cls(status, msg)
 
+
 class NotFound(Error):
     @classmethod
     def raise_for_status(cls, status, msg):
         if status == error.item_not_found:
             raise cls(status, msg)
         Error.raise_for_status(status, msg)
+
 
 @contextlib.contextmanager
 def open(name):
@@ -64,6 +68,7 @@ SecKeychainFindGenericPassword.argtypes = (
     POINTER(c_void_p),
     POINTER(sec_keychain_item_ref))
 SecKeychainFindGenericPassword.restype = OS_status
+
 
 def find_generic_password(kc_name, service, username):
         username = username.encode('utf-8')
@@ -108,6 +113,7 @@ SecKeychainItemModifyAttributesAndData.argtypes = (
     c_uint32,
     c_void_p)
 SecKeychainItemModifyAttributesAndData.restype = OS_status
+
 
 def set_generic_password(kc_name, service, username, password):
     username = username.encode('utf-8')
