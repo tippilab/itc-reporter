@@ -32,15 +32,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import sys
 import argparse
-import urllib
-import urllib2
-import json
-import zlib
-import re
 import datetime
-
+import json
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import zlib
 
 if sys.platform == 'darwin':
     import keychain
@@ -200,10 +200,10 @@ def get_credentials(args):
 
 def build_json_request_string(credentials, query):
     """Build JSON string from urlquoted credentials and the query input"""
-
     userid, accessToken, password, account, mode = credentials
 
-    request = dict(userid=userid, version=VERSION, mode=mode, queryInput=query)
+    request = dict(userid=userid, version=VERSION,
+                   mode=mode, queryInput=query)
     if account:
         request.update(account=account)  # empty account info result error 404
     if accessToken:
@@ -211,28 +211,26 @@ def build_json_request_string(credentials, query):
     if password:
         request.update(password=password)
 
-    return urllib.urlencode(dict(jsonRequest=json.dumps(request)))
+    return urllib.parse.urlencode(dict(jsonRequest=json.dumps(request)))
 
 
 def post_request(endpoint, credentials, command, url_params=None):
     """Execute the HTTP POST request"""
-
     command = "[p=Reporter.properties, %s]" % command
     request_data = build_json_request_string(credentials, command)
     if url_params:
         request_data += url_params
-
-    request = urllib2.Request(endpoint, request_data)
+    request = urllib.request.Request(endpoint, request_data.encode('utf-8'))
+    # request = urllib.request.Request(endpoint, request_data)
     request.add_header(
         'Accept', 'text/html,image/gif,image/jpeg; q=.2, */*; q=.2')
-
     try:
-        response = urllib2.urlopen(request)
+        response = urllib.request.urlopen(request)
         content = response.read()
         header = response.info()
 
         return (content, header)
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
         if e.code == 400 or e.code == 401 or e.code == 403 or e.code == 404:
             # for these error codes, the body always contains an error message
             raise ValueError(e.read())
@@ -245,11 +243,10 @@ def post_request(endpoint, credentials, command, url_params=None):
 def output_result(result, unzip=True):
     """Output (and when necessary unzip) the result of the request
     to the screen or into a report file"""
-
     content, header = result
 
     # unpack content into the final report file if it is gzip compressed.
-    if header.gettype() == 'application/a-gzip':
+    if header.get_content_type() == 'application/a-gzip':
         msg = header.dict['downloadmsg']
         filename = header.dict['filename'] or 'report.txt.gz'
         if unzip:
@@ -261,7 +258,7 @@ def output_result(result, unzip=True):
         file.close()
         print(msg)
     else:
-        print(content)
+        print(content.decode('utf-8'))
 
 # command line arguments
 
@@ -508,7 +505,7 @@ def parse_arguments():
 
     try:
         validate_arguments(args)
-    except ValueError, e:
+    except ValueError as e:
         parser_main.error(e)
 
     return args
@@ -586,7 +583,7 @@ if __name__ == '__main__':
 
     try:
         args.func(args)
-    except ValueError, e:
+    except ValueError as e:
         print(e)
         exit(-1)
 
