@@ -247,13 +247,13 @@ def output_result(result, unzip=True):
 
     # unpack content into the final report file if it is gzip compressed.
     if header.get_content_type() == 'application/a-gzip':
-        msg = header.dict['downloadmsg']
-        filename = header.dict['filename'] or 'report.txt.gz'
+        msg = dict(header.items())['downloadMsg']
+        filename = dict(header.items())['filename'] or 'report.txt.gz'
         if unzip:
             msg = msg.replace('.txt.gz', '.txt')
             filename = filename[:-3]
             content = zlib.decompress(content, 15 + 32)
-        file = open(filename, 'w')
+        file = open(filename, 'wb')
         file.write(content)
         file.close()
         print(msg)
